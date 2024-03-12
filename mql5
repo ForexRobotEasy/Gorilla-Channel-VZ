@@ -1,0 +1,76 @@
+
+//+------------------------------------------------------------------+
+//|                                            Gorilla Channel VZ    |
+//|                                       Developer: Forex Robot Easy Team |
+//|                                       Website: forexroboteasy.com |
+//+------------------------------------------------------------------+
+
+// Indicator input parameters
+input int period = 20; // Trend channel period
+input int deviation = 2; // Deviation multiplier
+input ENUM_APPLIED_PRICE price = PRICE_CLOSE; // Applied price for calculations
+
+// Indicator buffers
+double UpperChannelBuffer[];
+double LowerChannelBuffer[];
+double SignalBuffer[];
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Set indicator buffers
+    SetIndexBuffer(0, UpperChannelBuffer, INDICATOR_DATA);
+    SetIndexBuffer(1, LowerChannelBuffer, INDICATOR_DATA);
+    SetIndexBuffer(2, SignalBuffer, INDICATOR_DATA);
+
+    // Set indicator label
+    IndicatorShortName('Gorilla Channel VZ');
+
+    // Return initialization success
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime& time[],
+                const double& open[],
+                const double& high[],
+                const double& low[],
+                const double& close[],
+                const long& tick_volume[],
+                const long& volume[],
+                const int& spread[])
+{
+    // Calculate trend channel
+    for(int i = period; i < rates_total; i++)
+    {
+        double sum = 0;
+        for(int j = i - period; j < i; j++)
+        {
+            sum += high[j];
+            sum += low[j];
+        }
+        
+        double upperChannel = sum / (2 * period) + deviation * MathSqrt(MathPow(high[i] - low[i], 2));
+        double lowerChannel = sum / (2 * period) - deviation * MathSqrt(MathPow(high[i] - low[i], 2));
+        
+        UpperChannelBuffer[i] = upperChannel;
+        LowerChannelBuffer[i] = lowerChannel;
+        
+        // Filter signals
+        if(close[i] > upperChannel)
+            SignalBuffer[i] = 1; // Buy signal
+        else if(close[i] < lowerChannel)
+            SignalBuffer[i] = -1; // Sell signal
+        else
+            SignalBuffer[i] = 0; // No signal
+    }
+    
+    // Return the number of calculated bars
+    return(rates_total);
+}
